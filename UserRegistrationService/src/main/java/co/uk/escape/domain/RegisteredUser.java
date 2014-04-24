@@ -12,12 +12,16 @@ public class RegisteredUser implements Serializable{
 	private static final long serialVersionUID = 9072775926451261535L;
 	
 	private String id;
+	private String firstname;
+	private String lastname;
 	@Indexed(unique = true)
 	private String emailAddress;
 	private String password;
 
-	public RegisteredUser(String id, String emailAddress, String password) {
+	public RegisteredUser(String id, String firstname, String lastname, String emailAddress, String password) {
 		this.id = id;
+		this.firstname = firstname;
+		this.lastname = lastname;
 		this.emailAddress = emailAddress;
 		this.password = password;
 	}
@@ -28,6 +32,22 @@ public class RegisteredUser implements Serializable{
 
 	public void setId(String id) {
 		this.id = id;
+	}
+
+	public String getFirstname() {
+		return firstname;
+	}
+
+	public void setFirstname(String firstname) {
+		this.firstname = firstname;
+	}
+
+	public String getLastname() {
+		return lastname;
+	}
+
+	public void setLastname(String lastname) {
+		this.lastname = lastname;
 	}
 
 	public String getEmailAddress() {
@@ -48,7 +68,8 @@ public class RegisteredUser implements Serializable{
 
 	@Override
 	public String toString() {
-		return "RegisteredUser [id=" + id + ", emailAddress=" + emailAddress
+		return "RegisteredUser [id=" + id + ", firstname=" + firstname
+				+ ", lastname=" + lastname + ", emailAddress=" + emailAddress
 				+ ", password=" + password + "]";
 	}
 
@@ -58,7 +79,11 @@ public class RegisteredUser implements Serializable{
 		int result = 1;
 		result = prime * result
 				+ ((emailAddress == null) ? 0 : emailAddress.hashCode());
+		result = prime * result
+				+ ((firstname == null) ? 0 : firstname.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((lastname == null) ? 0 : lastname.hashCode());
 		result = prime * result
 				+ ((password == null) ? 0 : password.hashCode());
 		return result;
@@ -78,10 +103,20 @@ public class RegisteredUser implements Serializable{
 				return false;
 		} else if (!emailAddress.equals(other.emailAddress))
 			return false;
+		if (firstname == null) {
+			if (other.firstname != null)
+				return false;
+		} else if (!firstname.equals(other.firstname))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (lastname == null) {
+			if (other.lastname != null)
+				return false;
+		} else if (!lastname.equals(other.lastname))
 			return false;
 		if (password == null) {
 			if (other.password != null)
@@ -90,7 +125,7 @@ public class RegisteredUser implements Serializable{
 			return false;
 		return true;
 	}
-	
-	
 
+	
+	
 }

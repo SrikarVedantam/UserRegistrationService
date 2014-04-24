@@ -1,23 +1,17 @@
 package co.uk.escape;
 
-import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
-import co.uk.escape.domain.ReceiverNewUserRegistration;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import co.uk.escape.service.ReceiverNewUserRegistration;
 
 @Configuration
 @EnableAutoConfiguration
@@ -38,11 +32,6 @@ public class UserRegistrationConfiguration {
 		rabbitTemplate.setMessageConverter(jsonConverter);
 		return rabbitTemplate;
 	}
-	
-//	@Bean
-//	FanoutExchange exchange() {
-//		return new FanoutExchange("user-registrations-exchange");
-//	}
 
 	@Bean
 	ReceiverNewUserRegistration receiver() {
