@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 
-@Document(collection = "users")
+@Document(collection = "users_loadtest")
 public class RegisteredUser implements Serializable{
 
 	private static final long serialVersionUID = 9072775926451261535L;
@@ -14,7 +14,8 @@ public class RegisteredUser implements Serializable{
 	private String id;
 	private String firstname;
 	private String lastname;
-	@Indexed(unique = true)
+	// Set to false to make load testing easier
+	//@Indexed(unique = false)
 	private String emailAddress;
 	private String password;
 
