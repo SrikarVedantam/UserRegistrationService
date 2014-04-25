@@ -1,7 +1,13 @@
 package co.uk.escape;
 
+import java.io.IOException;
+
+import javax.annotation.PostConstruct;
+
 import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.Binding.DestinationType;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -14,6 +20,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
+import com.rabbitmq.client.Channel;
+
+import co.uk.escape.domain.TemporaryQueue;
 import co.uk.escape.service.ReceiverNewUserRegistration;
 
 @Configuration
@@ -21,28 +30,29 @@ import co.uk.escape.service.ReceiverNewUserRegistration;
 @ComponentScan
 public class UserRegistrationConfiguration {
 	
-	final static String queueName = "user-registration";
+//	final static String queueName = "user-registration";
 	
 	@Bean
-	Queue queue() {
-		return new Queue(queueName, false);
+	TemporaryQueue temporaryQueue(ConnectionFactory connectionFactory) throws IOException {
+		Channel channel=connectionFactory.createConnection().createChannel(false); //String name, boolean durable, boolean exclusive, boolean autoDelete)
+		return new TemporaryQueue(channel.queueDeclare().getQueue());
 	}
 	
 	
 	@Bean
-	TopicExchange exchange() {
-		return new TopicExchange("user-registrations-exchange");
+	FanoutExchange exchange() {
+		return new FanoutExchange("user-registrations-exchange");
 	}
 	
 	@Bean
-	Binding binding(Queue queue, TopicExchange exchange) {
-		return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
+	Binding binding(TemporaryQueue temporaryQueue, FanoutExchange exchange) {
+		return new Binding(temporaryQueue.getName(), DestinationType.QUEUE, exchange.getName(), "", null);
 	}
 	
 	@Bean
 	RabbitTemplate template(ConnectionFactory connectionFactory){
 		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
-		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);	
 		rabbitTemplate.setMessageConverter(jsonConverter);
 		return rabbitTemplate;
 	}
@@ -62,12 +72,13 @@ public class UserRegistrationConfiguration {
 
 	
 	@Bean
-	SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter) {		
+	SimpleMessageListenerContainer container(TemporaryQueue temporaryQueue, ConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter) throws IOException {			
 		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
 		container.setConcurrentConsumers(10);
 		container.setConnectionFactory(connectionFactory);
-		container.setQueueNames(queueName);
+		container.setQueueNames(temporaryQueue.getName());
 		container.setMessageListener(listenerAdapter);
+		System.out.println(container.getQueueNames());
 		return container;
 	}
 
