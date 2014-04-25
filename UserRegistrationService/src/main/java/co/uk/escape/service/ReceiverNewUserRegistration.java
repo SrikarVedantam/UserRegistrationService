@@ -30,7 +30,7 @@ public class ReceiverNewUserRegistration {
 			System.out.println("opps problems: " + e.getMessage());
 		}
 
-        System.out.println("ReceiverNewUserRegistration <" + registeredUser + ">");
+        System.out.println("[1] ReceiverNewUserRegistration <" + registeredUser + ">");
     }
 	
 
