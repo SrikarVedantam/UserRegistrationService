@@ -1,12 +1,14 @@
 package co.uk.escape.service;
 
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-
+import org.springframework.amqp.core.Queue;
 import co.uk.escape.domain.RegisteredUser;
 import co.uk.escape.domain.RegistrationRequest;
 
@@ -14,9 +16,16 @@ import co.uk.escape.domain.RegistrationRequest;
 public class ReceiverNewUserRegistration {
 	
 	@Autowired
+	RabbitTemplate rabbitTemplate;
+	
+	@Autowired
+	DirectExchange exchange;
+	
+	
+	@Autowired
 	RegisteredUserRepository registeredUserRepository;
 	
-	public void saveNewUser(RegistrationRequest newUserRegistrationRequest) {
+	public String saveNewUser(RegistrationRequest newUserRegistrationRequest) {
 		
 		RegisteredUser registeredUser = new RegisteredUser(null, 
 				newUserRegistrationRequest.getFirstname(),
@@ -25,12 +34,17 @@ public class ReceiverNewUserRegistration {
 				newUserRegistrationRequest.getPassword());		
 	
 		try {
-			registeredUserRepository.save(registeredUser);
+			registeredUser = registeredUserRepository.save(registeredUser);
 		} catch (DuplicateKeyException e){
 			System.out.println("opps problems: " + e.getMessage());
 		}
+		
+		
+		rabbitTemplate.convertAndSend(exchange.getName(), "email", registeredUser);
+		
 
         System.out.println("[1] ReceiverNewUserRegistration <" + registeredUser + ">");
+        return "{'message':'all ok'}";
     }
 	
 

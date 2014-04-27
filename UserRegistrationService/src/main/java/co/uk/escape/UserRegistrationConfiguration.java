@@ -6,7 +6,9 @@ import javax.annotation.PostConstruct;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Binding.DestinationType;
+import org.springframework.amqp.core.AnonymousQueue;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
@@ -32,22 +34,40 @@ public class UserRegistrationConfiguration {
 	
 //	final static String queueName = "user-registration";
 	
+//	@Bean
+//	TemporaryQueue temporaryQueue(ConnectionFactory connectionFactory) throws IOException {
+//		Channel channel=connectionFactory.createConnection().createChannel(false); //String name, boolean durable, boolean exclusive, boolean autoDelete)
+//		return new TemporaryQueue(channel.queueDeclare().getQueue());
+//	}
+	
+	final static String queueName = "user-registration";
+	
 	@Bean
-	TemporaryQueue temporaryQueue(ConnectionFactory connectionFactory) throws IOException {
-		Channel channel=connectionFactory.createConnection().createChannel(false); //String name, boolean durable, boolean exclusive, boolean autoDelete)
-		return new TemporaryQueue(channel.queueDeclare().getQueue());
+	Queue requestQueue() {
+		return new Queue(queueName+"-request", false);
+	}
+	
+	@Bean
+	Queue emailQueue() {
+		return new Queue(queueName+"-email", false);
+	}
+	
+	@Bean
+	DirectExchange exchange() {
+		return new DirectExchange("user-registrations-exchange");
 	}
 	
 	
 	@Bean
-	FanoutExchange exchange() {
-		return new FanoutExchange("user-registrations-exchange");
+	public Binding binding() {
+		return BindingBuilder.bind(requestQueue()).to(exchange()).with("test");
 	}
 	
 	@Bean
-	Binding binding(TemporaryQueue temporaryQueue, FanoutExchange exchange) {
-		return new Binding(temporaryQueue.getName(), DestinationType.QUEUE, exchange.getName(), "", null);
+	public Binding bindingEmail() {
+		return BindingBuilder.bind(emailQueue()).to(exchange()).with("email");
 	}
+	
 	
 	@Bean
 	RabbitTemplate template(ConnectionFactory connectionFactory){
@@ -63,23 +83,28 @@ public class UserRegistrationConfiguration {
 	}
 	
 	@Bean
-	MessageListenerAdapter listenerAdapter(ReceiverNewUserRegistration receiver) {
+	MessageListenerAdapter listenerAdapter(ReceiverNewUserRegistration receiver, Queue requestQueue) {
 		MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(receiver, "saveNewUser");	
 		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
 		messageListenerAdapter.setMessageConverter(jsonConverter);
+//		messageListenerAdapter.setResponseExchange(requestQueue.getName());
+//		messageListenerAdapter.setResponseRoutingKey("test");
 		return messageListenerAdapter;
 	}
 
 	
 	@Bean
-	SimpleMessageListenerContainer container(TemporaryQueue temporaryQueue, ConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter) throws IOException {			
+	SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter, Queue requestQueue) throws IOException {			
 		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-		container.setConcurrentConsumers(10);
 		container.setConnectionFactory(connectionFactory);
-		container.setQueueNames(temporaryQueue.getName());
+		container.setQueues(requestQueue);
 		container.setMessageListener(listenerAdapter);
 		System.out.println(container.getQueueNames());
 		return container;
 	}
 
+	
+
+	
+	
 }
