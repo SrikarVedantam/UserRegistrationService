@@ -32,14 +32,6 @@ import co.uk.escape.service.ReceiverNewUserRegistration;
 @ComponentScan
 public class UserRegistrationConfiguration {
 	
-//	final static String queueName = "user-registration";
-	
-//	@Bean
-//	TemporaryQueue temporaryQueue(ConnectionFactory connectionFactory) throws IOException {
-//		Channel channel=connectionFactory.createConnection().createChannel(false); //String name, boolean durable, boolean exclusive, boolean autoDelete)
-//		return new TemporaryQueue(channel.queueDeclare().getQueue());
-//	}
-	
 	final static String queueName = "user-registration";
 	
 	@Bean
@@ -56,11 +48,10 @@ public class UserRegistrationConfiguration {
 	DirectExchange exchange() {
 		return new DirectExchange("user-registrations-exchange");
 	}
-	
-	
+		
 	@Bean
 	public Binding binding() {
-		return BindingBuilder.bind(requestQueue()).to(exchange()).with("test");
+		return BindingBuilder.bind(requestQueue()).to(exchange()).with("user");
 	}
 	
 	@Bean
@@ -87,8 +78,6 @@ public class UserRegistrationConfiguration {
 		MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(receiver, "saveNewUser");	
 		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
 		messageListenerAdapter.setMessageConverter(jsonConverter);
-//		messageListenerAdapter.setResponseExchange(requestQueue.getName());
-//		messageListenerAdapter.setResponseRoutingKey("test");
 		return messageListenerAdapter;
 	}
 
@@ -101,10 +90,6 @@ public class UserRegistrationConfiguration {
 		container.setMessageListener(listenerAdapter);
 		System.out.println(container.getQueueNames());
 		return container;
-	}
-
-	
-
-	
+	}	
 	
 }

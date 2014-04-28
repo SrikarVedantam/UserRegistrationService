@@ -25,7 +25,7 @@ public class ReceiverNewUserRegistration {
 	@Autowired
 	RegisteredUserRepository registeredUserRepository;
 	
-	public String saveNewUser(RegistrationRequest newUserRegistrationRequest) {
+	public RegisteredUser saveNewUser(RegistrationRequest newUserRegistrationRequest) {
 		
 		RegisteredUser registeredUser = new RegisteredUser(null, 
 				newUserRegistrationRequest.getFirstname(),
@@ -44,7 +44,7 @@ public class ReceiverNewUserRegistration {
 		
 
         System.out.println("[1] ReceiverNewUserRegistration <" + registeredUser + ">");
-        return "{'message':'all ok'}";
+        return registeredUser;
     }
 	
 
