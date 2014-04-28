@@ -39,14 +39,19 @@ public class UserRegistrationConfiguration {
 		return new Queue(queueName+"-request", false);
 	}
 	
-	@Bean
-	Queue emailQueue() {
-		return new Queue(queueName+"-email", false);
-	}
+//	@Bean
+//	Queue emailQueue() {
+//		return new Queue(queueName+"-email", false);
+//	}
 	
 	@Bean
 	DirectExchange exchange() {
 		return new DirectExchange("user-registrations-exchange");
+	}
+	
+	@Bean
+	FanoutExchange fanoutExchange() {
+		return new FanoutExchange("user-registrations-fanout-exchange");
 	}
 		
 	@Bean
@@ -54,17 +59,18 @@ public class UserRegistrationConfiguration {
 		return BindingBuilder.bind(requestQueue()).to(exchange()).with("user");
 	}
 	
-	@Bean
-	public Binding bindingEmail() {
-		return BindingBuilder.bind(emailQueue()).to(exchange()).with("email");
-	}
+//	@Bean
+//	public Binding bindingEmail() {
+//		return BindingBuilder.bind(emailQueue()).to(exchange()).with("email");
+//	}
 	
 	
 	@Bean
-	RabbitTemplate template(ConnectionFactory connectionFactory){
+	RabbitTemplate template(FanoutExchange exchange, ConnectionFactory connectionFactory){
 		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
 		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);	
 		rabbitTemplate.setMessageConverter(jsonConverter);
+		rabbitTemplate.setExchange(exchange.getName());
 		return rabbitTemplate;
 	}
 
@@ -74,7 +80,7 @@ public class UserRegistrationConfiguration {
 	}
 	
 	@Bean
-	MessageListenerAdapter listenerAdapter(ReceiverNewUserRegistration receiver, Queue requestQueue) {
+	MessageListenerAdapter listenerAdapter(ReceiverNewUserRegistration receiver) {
 		MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(receiver, "saveNewUser");	
 		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
 		messageListenerAdapter.setMessageConverter(jsonConverter);
@@ -88,7 +94,6 @@ public class UserRegistrationConfiguration {
 		container.setConnectionFactory(connectionFactory);
 		container.setQueues(requestQueue);
 		container.setMessageListener(listenerAdapter);
-		System.out.println(container.getQueueNames());
 		return container;
 	}	
 	

@@ -1,6 +1,7 @@
 package co.uk.escape.service;
 
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.amqp.core.Queue;
+
 import co.uk.escape.domain.RegisteredUser;
 import co.uk.escape.domain.RegistrationRequest;
 
@@ -21,6 +23,8 @@ public class ReceiverNewUserRegistration {
 	@Autowired
 	DirectExchange exchange;
 	
+	@Autowired
+	FanoutExchange fanoutExchange;	
 	
 	@Autowired
 	RegisteredUserRepository registeredUserRepository;
@@ -40,7 +44,7 @@ public class ReceiverNewUserRegistration {
 		}
 		
 		
-		rabbitTemplate.convertAndSend(exchange.getName(), "email", registeredUser);
+		rabbitTemplate.convertAndSend(fanoutExchange.getName(), registeredUser);
 		
 
         System.out.println("[1] ReceiverNewUserRegistration <" + registeredUser + ">");
