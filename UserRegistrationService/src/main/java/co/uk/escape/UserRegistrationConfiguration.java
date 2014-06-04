@@ -1,5 +1,8 @@
 package co.uk.escape;
 
+import static co.uk.escape.RMQExchange.Type.*;
+import static co.uk.escape.RMQQueue.Type.*;
+
 import java.io.IOException;
 
 import org.springframework.amqp.core.Binding;
@@ -22,58 +25,95 @@ import co.uk.escape.service.RegisterUserService;
 @ComponentScan
 public class UserRegistrationConfiguration {
 	
-	// QUEUES //	
-	@Bean
-	Queue replyQueue() {
-		return new Queue("replyqueue", true);
-	}
 	
-	@Bean
-	Queue registrationQueue() {
-		return new Queue("registrationqueue", true);
+	// QUEUES //	
+	@Bean @RMQQueue(LOGIN_RESPONSE)
+	Queue loginResponseQueue() {
+		return new Queue("LoginResponseQueue", true);
 	}
 
-	
-	// EXCHANGE //
-	@Bean
-	TopicExchange messageexchange() {
-		return new TopicExchange("messageexchange");
+	@Bean @RMQQueue(LOGIN_REQUEST)
+	Queue loginRequestQueue() {
+		return new Queue("LoginRequestQueue", true);
+	}	
+
+	@Bean @RMQQueue(REGISTRATION_REQUEST)
+	Queue registrationRequestQueue() {
+		return new Queue("RegistrationRequestQueue", true);
 	}
-		
-	@Bean
-	TopicExchange replyexchange() {
-		return new TopicExchange("replyexchange");
+	
+	@Bean @RMQQueue(REGISTRATION_RESPONSE)
+	Queue registrationResponseQueue() {
+		return new Queue("RegistrationResponseQueue", true);
+	}
+	
+	@Bean @RMQQueue(USER_SERVICE)
+	Queue userServcieQueue() {
+		return new Queue("UserServiceQueue", true);
+	}
+	
+
+	// EXCHANGE //
+	@Bean @RMQExchange(AUTHORISATION)
+	TopicExchange authorisationExchange() {
+		return new TopicExchange("AuthorisationExchange");
+	}
+	
+	@Bean @RMQExchange(RESPONSE)
+	TopicExchange responseExchange() {
+		return new TopicExchange("ResponseExchange");
+	}
+	
+	@Bean @RMQExchange(MESSAGE)
+	TopicExchange messageExchange() {
+		return new TopicExchange("MessageExchange");
 	}
 	
 	
 	// BINDINGS //	
-	@Bean
-	Binding replyBind(){
-		return BindingBuilder.bind(replyQueue()).to(replyexchange()).with("replyroutingkey");
-	}
-	
-	@Bean
-	Binding registrationBind(){
-		return BindingBuilder.bind(registrationQueue()).to(messageexchange()).with("registrationroutingkey");
-	}
-	
+	// request queue bindings //
     @Bean
-    RabbitTemplate template(TopicExchange messageexchange, ConnectionFactory connectionFactory){
+	Binding registrationRequestBind(){
+		return BindingBuilder.bind(registrationRequestQueue()).to(authorisationExchange()).with("RegistrationRoutingKey");
+	}
+
+	// service bindings //
+	@Bean
+	Binding userServiceBind(){
+		return BindingBuilder.bind(userServcieQueue()).to(messageExchange()).with("RegistrationRoutingKey");
+	}	
+	
+    // response queue bindings //
+	@Bean
+	Binding registrationResponseBind(){
+		return BindingBuilder.bind(registrationResponseQueue()).to(responseExchange()).with("ResponseRoutingKey");
+	}	 
+	
+    /////////////////////////////////////////
+	// register user : Receiver and Sender //
+    /////////////////////////////////////////
+    @Bean
+    RabbitTemplate template(ConnectionFactory connectionFactory,
+    		@RMQExchange(RESPONSE) TopicExchange responseExchange,
+    		@RMQQueue(REGISTRATION_RESPONSE) Queue registrationResponseQueue){
         Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);    
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonConverter);
-        rabbitTemplate.setExchange("replyexchange");
-        rabbitTemplate.setQueue("replyqueue");
-        rabbitTemplate.setRoutingKey("replyroutingkey");
+        rabbitTemplate.setExchange(responseExchange.getName());
+        rabbitTemplate.setQueue(registrationResponseQueue.getName());
+        rabbitTemplate.setRoutingKey("ResponseRoutingKey");
         return rabbitTemplate;
     }
     
-    
+    //////////////////////////////
+	// register user : Listener //
+    ////////////////////////////// 
 	@Bean
-	SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, RegisterUserService receiver) throws IOException {			
+	SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, RegisterUserService receiver,
+    		@RMQQueue(USER_SERVICE) Queue userServiceQueue) throws IOException {			
 		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
 		container.setConnectionFactory(connectionFactory);
-		container.setQueues(new Queue("registrationqueue", false));
+		container.setQueues(userServiceQueue);
 		container.setMessageListener(receiver);
 		return container;
 	}
@@ -82,37 +122,5 @@ public class UserRegistrationConfiguration {
 	RegisterUserService receiver() {
 		return new RegisterUserService();
 	} 
-	
-//	@Bean
-//	RabbitTemplate template(FanoutExchange exchange, ConnectionFactory connectionFactory){
-//		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
-//		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);	
-//		rabbitTemplate.setMessageConverter(jsonConverter);
-//		rabbitTemplate.setExchange(exchange.getName());
-//		return rabbitTemplate;
-//	}
-//
-//	@Bean
-//	ReceiverNewUserRegistration receiver() {
-//		return new ReceiverNewUserRegistration();
-//	}
-//	
-//	@Bean
-//	MessageListenerAdapter listenerAdapter(ReceiverNewUserRegistration receiver) {
-//		MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(receiver, "saveNewUser");	
-//		Jackson2JsonMessageConverter jsonConverter = new Jackson2JsonMessageConverter();
-//		messageListenerAdapter.setMessageConverter(jsonConverter);
-//		return messageListenerAdapter;
-//	}
-//
-//	
-//	@Bean
-//	SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter, Queue requestQueue) throws IOException {			
-//		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-//		container.setConnectionFactory(connectionFactory);
-//		container.setQueues(requestQueue);
-//		container.setMessageListener(listenerAdapter);
-//		return container;
-//	}	
 	
 }
